@@ -1,0 +1,613 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>社内教育テスト（自由記述）</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+      margin-bottom: 16px;
+    }
+    button {
+      font-size: 16px;
+      padding: 10px 16px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      margin: 4px 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .primary {
+      background: #1976d2;
+      color: #ffffff;
+    }
+    .secondary {
+      background: #ffffff;
+      color: #1976d2;
+      border: 1px solid #1976d2;
+    }
+    .hidden {
+      display: none;
+    }
+    #progress {
+      font-size: 14px;
+      margin-bottom: 8px;
+      color: #666;
+    }
+    #question-text {
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+    #answer-input {
+      width: 100%;
+      min-height: 80px;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 15px;
+      box-sizing: border-box;
+      margin-bottom: 12px;
+    }
+    .question-detail {
+      border-top: 1px solid #eee;
+      padding-top: 8px;
+      margin-top: 8px;
+      font-size: 14px;
+    }
+    .small-label {
+      font-size: 12px;
+      font-weight: bold;
+      color: #555;
+      margin-top: 4px;
+    }
+    .level-label {
+      display: inline-block;
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #e3f2fd;
+      color: #1565c0;
+      margin-bottom: 8px;
+    }
+    #send-text {
+      width: 100%;
+      min-height: 140px;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 13px;
+      box-sizing: border-box;
+      margin: 4px 0 8px;
+      white-space: pre-wrap;
+    }
+
+    /* 印刷用：結果画面だけきれいに出す */
+    @media print {
+      body {
+        background: #ffffff;
+      }
+      #start-screen,
+      #quiz-screen,
+      #copy-btn,
+      #mail-btn,
+      #print-btn,
+      #retry-btn {
+        display: none !important;
+      }
+      .card {
+        box-shadow: none;
+        margin: 0;
+        border-radius: 0;
+      }
+      #send-text {
+        border: 1px solid #000;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>社内教育テスト（自由記述）</h1>
+
+    <!-- レベル選択画面 -->
+    <div id="start-screen" class="card">
+      <p>レベルを選んでテストを開始してください。<br>
+        自由記述式で、自分の言葉で説明してもらう形式です。</p>
+      <p style="font-size: 13px; color:#555;">
+        ※採点・フィードバックは講師・先輩が行います。<br>
+        このアプリは「回答の記録」と「模範解答＋現場解説の表示」を行います。
+      </p>
+      <button class="primary" onclick="startQuiz(1)">Lv1：主要部材（10問）</button>
+      <button class="primary" onclick="startQuiz(2)">Lv2：換気方式（10問）</button>
+      <button class="primary" onclick="startQuiz(3)">Lv3：風量・風速・圧損・静圧（10問）</button>
+    </div>
+
+    <!-- 出題画面 -->
+    <div id="quiz-screen" class="card hidden">
+      <div id="progress"></div>
+      <div id="question-text"></div>
+      <textarea id="answer-input" placeholder="ここに回答を入力してください（Shift+Enterで改行）"></textarea>
+      <button id="submit-btn" class="primary">この回答で次へ進む</button>
+    </div>
+
+    <!-- 結果画面 -->
+    <div id="result-screen" class="card hidden">
+      <h2>回答一覧</h2>
+      <p id="result-level" class="level-label"></p>
+      <p style="font-size: 13px; color:#555;">
+        以下をもとに、講師・先輩が採点・フィードバックしてください。<br>
+        必要に応じて、この画面をスクショやテキストで共有する運用もできます。
+      </p>
+
+      <!-- 採点者に送る用テキスト -->
+      <div class="small-label">採点者に送る用（問題＋回答のみ）</div>
+      <textarea id="send-text" readonly></textarea>
+      <button id="copy-btn" class="secondary">テキストをコピー</button>
+      <button id="mail-btn" class="secondary">メールアプリで送る</button>
+      <button id="print-btn" class="secondary">PDFに出力（印刷）</button>
+
+      <hr style="margin:16px 0; border:none; border-top:1px solid #eee;">
+
+      <!-- 画面内で見る用の詳細（模範解答・現場解説あり） -->
+      <div id="detail"></div>
+
+      <button id="retry-btn" class="secondary">レベル選択に戻る</button>
+    </div>
+  </div>
+
+  <script>
+    // 1回のテストで出す問題数
+    const NUM_QUESTIONS_PER_TEST = 10;
+
+    const questions = [
+      // Lv1：主要部材
+      {
+        id: 1,
+        level: 1,
+        category: "主要部材",
+        text: "VDはどんな役割の部材ですか？日本語の訳と用途を説明してください。",
+        modelAnswer: "VD（Volume Damper）は風量調整ダンパーで、ダクト内の風量を調整するための部材。開度を調整し、各系統の風量バランスを整える。",
+        siteNote: "風量調整やTAB作業で必須。VDがないと末端が吸わないなどのクレームになる。"
+      },
+      {
+        id: 2,
+        level: 1,
+        category: "主要部材",
+        text: "FDはどんな役割の部材ですか？日本語の訳と用途を説明してください。",
+        modelAnswer: "FD（Fire Damper）は防火ダンパーで、火災時に煙と炎がダクトを通って広がるのを防ぐ装置。一定温度でヒューズが溶け閉じる。",
+        siteNote: "防火区画貫通部に必須。FDの付け忘れは完了検査で重大指摘。"
+      },
+      {
+        id: 3,
+        level: 1,
+        category: "主要部材",
+        text: "グラスウールとロックウールの特徴と使用場面を説明してください。",
+        modelAnswer: "グラスウール：軽量・安価・断熱性が高く空調ダクトに使用。ロックウール：耐熱・耐火性に優れ厨房排気ダクトなど高温部に使用。",
+        siteNote: "空調＝グラスウール、排気＝ロックウールが基本。"
+      },
+      {
+        id: 4,
+        level: 1,
+        category: "主要部材",
+        text: "セラカバーはどのような場面で使用しますか？",
+        modelAnswer: "高温排気ダクトが可燃物に近い場合、断熱・遮熱のために使用する。",
+        siteNote: "焼肉・中華厨房で木下地に近い場合に消防署から指摘されやすい。"
+      },
+      {
+        id: 5,
+        level: 1,
+        category: "主要部材",
+        text: "フレキシブルダクトとはどんなときに使いますか？",
+        modelAnswer: "仕上がり位置の微調整や短距離の接続に使用。吹出口近くで使うことが多い。",
+        siteNote: "長く使うと抵抗が増え風量が落ちるため2m以内が基本。"
+      },
+      {
+        id: 6,
+        level: 1,
+        category: "主要部材",
+        text: "キャンバスダクトの役割を説明してください。",
+        modelAnswer: "機器の振動をダクトに伝えないための防振ジョイントとして使用。",
+        siteNote: "換気扇・ファン直近に付く。騒音トラブル防止に重要。"
+      },
+      {
+        id: 7,
+        level: 1,
+        category: "主要部材",
+        text: "ニューホープダクトの使用場面と理由を説明してください。",
+        modelAnswer: "油煙の多い厨房排気で使用。耐油・耐熱性が高く腐食しにくい。",
+        siteNote: "普通のフレキでは油で劣化するため、焼肉店では必須。"
+      },
+      {
+        id: 8,
+        level: 1,
+        category: "主要部材",
+        text: "ガラリに防鳥網・防虫網を付ける目的を説明してください。",
+        modelAnswer: "鳥・虫の侵入を防ぎ、ダクトの汚染や詰まりを防止するため。",
+        siteNote: "飲食店は虫が入りやすくトラブルが多い。"
+      },
+      {
+        id: 9,
+        level: 1,
+        category: "主要部材",
+        text: "グリスフィルターの用途を説明してください。",
+        modelAnswer: "油煙を捕集し、ダクト内部に油が溜まるのを防ぐ。",
+        siteNote: "清掃しないと火災原因に。厨房排気では必ず必要。"
+      },
+      {
+        id: 10,
+        level: 1,
+        category: "主要部材",
+        text: "防鳥網・防虫網を細かくしすぎたデメリットを説明してください。",
+        modelAnswer: "抵抗が増えて風量低下を招き、汚れで詰まりやすくなる。",
+        siteNote: "吸わない・騒音・換気効率低下の原因。バランスが重要。"
+      },
+
+      // Lv2：換気方式
+      {
+        id: 11,
+        level: 2,
+        category: "換気方式",
+        text: "第1種換気とは何か説明してください。",
+        modelAnswer: "給気・排気の両方を機械で行う方式。気圧バランスを保ちやすい。",
+        siteNote: "客席に最適。外気量が安定し煙の流れも安定する。"
+      },
+      {
+        id: 12,
+        level: 2,
+        category: "換気方式",
+        text: "第3種換気とは何か説明してください。",
+        modelAnswer: "排気を機械で行い、給気は自然給気で行う方式。",
+        siteNote: "厨房に採用される。強制排気→自然給気が基本。"
+      },
+      {
+        id: 13,
+        level: 2,
+        category: "換気方式",
+        text: "飲食店で第2種換気が採用されにくい理由を説明してください。",
+        modelAnswer: "正圧になりやすく、臭気・煙が外へ漏れやすいから。",
+        siteNote: "臭気クレームにつながるため飲食店ではほぼ不採用。"
+      },
+      {
+        id: 14,
+        level: 2,
+        category: "換気方式",
+        text: "客席を第1種換気にするメリットを説明してください。",
+        modelAnswer: "外気量が安定し、季節でムラが出にくく快適性が高い。",
+        siteNote: "煙の立ち上りが安定するため焼肉店でよく採用。"
+      },
+      {
+        id: 15,
+        level: 2,
+        category: "換気方式",
+        text: "厨房を第3種換気にするメリットを説明してください。",
+        modelAnswer: "熱・臭気・油煙を確実に排出でき、客席側に逆流しにくい。",
+        siteNote: "厨房は“強排気”が基本。ただし給気不足に注意。"
+      },
+      {
+        id: 16,
+        level: 2,
+        category: "換気方式",
+        text: "厨房排気が強すぎると、どのような問題が発生しますか？",
+        modelAnswer: "店内が過度に負圧となり、入口ドアが重くなる、空調効率低下、不完全燃焼などが発生する。",
+        siteNote: "「冬に寒い」「ドアが重い」はほぼこの問題。"
+      },
+      {
+        id: 17,
+        level: 2,
+        category: "換気方式",
+        text: "第1種換気の給気位置の注意点を説明してください。",
+        modelAnswer: "外気が客に直接当たらないようにし、排気との気流バランスを崩さない位置にすること。",
+        siteNote: "給気が強すぎると煙が散って焼けにくくなる。"
+      },
+      {
+        id: 18,
+        level: 2,
+        category: "換気方式",
+        text: "下方排気（無煙ロースター）のメリット・デメリットを説明してください。",
+        modelAnswer: "メリット：煙をすぐ吸える。デメリット：ダクトに油が溜まりやすくメンテが大変。",
+        siteNote: "吸う力は最強だが、維持費が高い。"
+      },
+      {
+        id: 19,
+        level: 2,
+        category: "換気方式",
+        text: "上部排気（上引きフード）のメリット・デメリットを説明してください。",
+        modelAnswer: "メリット：自然上昇の煙を吸いやすい。デメリット：給気が悪いと吸わない。",
+        siteNote: "気流に依存するため給気量確保が必須。"
+      },
+      {
+        id: 20,
+        level: 2,
+        category: "換気方式",
+        text: "給気不足店舗の典型症状を3つ挙げてください。",
+        modelAnswer: "① ドアが開きにくい ② 火が揺れる ③ 吸い込みが弱く煙が広がる。",
+        siteNote: "飲食店の90％の換気トラブルは給気不足。"
+      },
+
+      // Lv3：風量・風速・圧損・静圧
+      {
+        id: 21,
+        level: 3,
+        category: "風量・風速・圧損・静圧",
+        text: "風量 = 〇〇 × △△ には何が入りますか？（言葉で説明してください）",
+        modelAnswer: "〇：風速　△：ダクト断面積。風量＝風速×断面積（場合によって×3600）。",
+        siteNote: "すべての換気計算の基本公式。"
+      },
+      {
+        id: 22,
+        level: 3,
+        category: "風量・風速・圧損・静圧",
+        text: "ダクトを小さくしすぎると、どのような問題が発生しますか？",
+        modelAnswer: "風速上昇、圧損増加、風切り音発生、風量低下が起こる。",
+        siteNote: "細いダクトは抵抗が大きくクレームになりやすい。"
+      },
+      {
+        id: 23,
+        level: 3,
+        category: "風量・風速・圧損・静圧",
+        text: "エルボが多いと風量が落ちる理由を説明してください。",
+        modelAnswer: "曲がりで乱流が発生し摩擦抵抗が増えるため。",
+        siteNote: "90°エルボ1個＝直管数m分の抵抗。多用禁止。"
+      },
+      {
+        id: 24,
+        level: 3,
+        category: "風量・風速・圧損・静圧",
+        text: "アスペクト比〇:1以下の〇には、東産業の基準では何が入りますか？",
+        modelAnswer: "4。",
+        siteNote: "平べったいダクトは風が流れにくい。"
+      },
+      {
+        id: 25,
+        level: 3,
+        category: "風量・風速・圧損・静圧",
+        text: "2000m³/hをH250のダクトで通す際、おおよその幅Wはいくつですか？",
+        modelAnswer: "約370mm。実務では250×400程度を使うことが多い。",
+        siteNote: "サイズ感の目安を体で覚えておくと現場判断が速い。"
+      },
+      {
+        id: 26,
+        level: 3,
+        category: "風量・風速・圧損・静圧",
+        text: "末端の吸い込みが弱い原因として、考えられる要因を挙げてください。",
+        modelAnswer: "① フィルター詰まり ② 給気不足 ③ ダンパー閉鎖 ④ ダクト汚れ・油 ⑤ 曲がり・長距離など。",
+        siteNote: "飲食店では給気不足と油詰まりが圧倒的に多い。"
+      },
+      {
+        id: 27,
+        level: 3,
+        category: "風量・風速・圧損・静圧",
+        text: "東産業での90°エルボ1個分の圧力損失はいくつで計算しますか？",
+        modelAnswer: "20Pa。",
+        siteNote: "短時間の現場計算に便利な基準。"
+      },
+      {
+        id: 28,
+        level: 3,
+        category: "風量・風速・圧損・静圧",
+        text: "ダクトを途中で絞ると、風速と静圧はどう変化しますか？",
+        modelAnswer: "風速↑ 静圧↑。",
+        siteNote: "騒音・風量低下の原因。安易な絞りは禁物。"
+      },
+      {
+        id: 29,
+        level: 3,
+        category: "風量・風速・圧損・静圧",
+        text: "静圧を強くしすぎた場合の悪影響を説明してください。",
+        modelAnswer: "漏気・騒音・部材破損などのリスクがある。",
+        siteNote: "「強い方が良い」は誤解。バランスが命。"
+      },
+      {
+        id: 30,
+        level: 3,
+        category: "風量・風速・圧損・静圧",
+        text: "換気の効きが悪い時に確認すべきポイントを5つ挙げてください。",
+        modelAnswer: "① 給気量 ② フィルター詰まり ③ ダンパー開度 ④ ダクト汚れ ⑤ ファンの劣化。",
+        siteNote: "焼肉店はほぼ給気不足とフィルター問題。"
+      }
+    ];
+
+    // --- ロジック ---
+
+    let quizQuestions = [];
+    let currentIndex = 0;
+    let userAnswers = [];
+    let currentLevel = null;
+
+    const levelNames = {
+      1: "Lv1：主要部材",
+      2: "Lv2：換気方式",
+      3: "Lv3：風量・風速・圧損・静圧"
+    };
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+
+    // onclick から呼ばれる
+    function startQuiz(level) {
+      currentLevel = level;
+
+      quizQuestions = questions.filter(q => q.level === level);
+      shuffle(quizQuestions);
+      const n = Math.min(NUM_QUESTIONS_PER_TEST, quizQuestions.length);
+      quizQuestions = quizQuestions.slice(0, n);
+
+      currentIndex = 0;
+      userAnswers = [];
+
+      document.getElementById("start-screen").classList.add("hidden");
+      document.getElementById("result-screen").classList.add("hidden");
+      document.getElementById("quiz-screen").classList.remove("hidden");
+
+      showQuestion();
+    }
+
+    function showQuestion() {
+      const q = quizQuestions[currentIndex];
+      document.getElementById("progress").textContent =
+        `${currentIndex + 1} / ${quizQuestions.length}`;
+
+      document.getElementById("question-text").textContent = q.text;
+      const input = document.getElementById("answer-input");
+      input.value = "";
+      input.focus();
+    }
+
+    function submitAnswer() {
+      const q = quizQuestions[currentIndex];
+      const inputEl = document.getElementById("answer-input");
+      const userText = inputEl.value.trim();
+
+      userAnswers.push({
+        question: q,
+        userText
+      });
+
+      currentIndex++;
+      if (currentIndex < quizQuestions.length) {
+        showQuestion();
+      } else {
+        showResult();
+      }
+    }
+
+    function showResult() {
+      document.getElementById("quiz-screen").classList.add("hidden");
+      document.getElementById("result-screen").classList.remove("hidden");
+
+      const detailEl = document.getElementById("detail");
+      detailEl.innerHTML = "";
+
+      const levelLabel = document.getElementById("result-level");
+      levelLabel.textContent = levelNames[currentLevel] || "";
+
+      // 画面用の詳細（模範解答・現場解説つき）
+      userAnswers.forEach((item, i) => {
+        const q = item.question;
+        const div = document.createElement("div");
+        div.className = "question-detail";
+
+        div.innerHTML = `
+          <div><strong>Q${i + 1}.</strong> ${q.text}</div>
+          <div class="small-label">あなたの回答：</div>
+          <div>${item.userText ? item.userText.replace(/\n/g, "<br>") : "（未入力）"}</div>
+          <div class="small-label">模範解答：</div>
+          <div>${q.modelAnswer}</div>
+          <div class="small-label">現場解説：</div>
+          <div>${q.siteNote}</div>
+        `;
+        detailEl.appendChild(div);
+      });
+
+      // 採点者に送る用テキスト（問題＋回答のみ）
+      const sendLines = [];
+      sendLines.push(levelNames[currentLevel] || "");
+      sendLines.push("");
+
+      userAnswers.forEach((item, i) => {
+        const q = item.question;
+        sendLines.push(`Q${i + 1}. ${q.text}`);
+        sendLines.push(`回答：${item.userText || "（未入力）"}`);
+        sendLines.push("");
+      });
+
+      const sendTextEl = document.getElementById("send-text");
+      sendTextEl.value = sendLines.join("\n");
+    }
+
+    // DOM読み込み後にボタン系イベント登録
+    window.addEventListener("DOMContentLoaded", () => {
+      const submitBtn = document.getElementById("submit-btn");
+      const retryBtn = document.getElementById("retry-btn");
+      const answerInput = document.getElementById("answer-input");
+      const copyBtn = document.getElementById("copy-btn");
+      const mailBtn = document.getElementById("mail-btn");
+      const printBtn = document.getElementById("print-btn");
+
+      if (submitBtn) {
+        submitBtn.addEventListener("click", submitAnswer);
+      }
+
+      if (retryBtn) {
+        retryBtn.addEventListener("click", () => {
+          document.getElementById("start-screen").classList.remove("hidden");
+          document.getElementById("result-screen").classList.add("hidden");
+        });
+      }
+
+      if (answerInput && submitBtn) {
+        answerInput.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            submitBtn.click();
+          }
+        });
+      }
+
+      // テキストコピー
+      if (copyBtn) {
+        copyBtn.addEventListener("click", () => {
+          const text = document.getElementById("send-text").value;
+          if (!text) return;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text)
+              .then(() => alert("テキストをコピーしました。採点者にそのまま貼り付けてください。"))
+              .catch(() => {
+                const el = document.getElementById("send-text");
+                el.focus();
+                el.select();
+                alert("コピーに失敗しました。Ctrl+Cでコピーしてください。");
+              });
+          } else {
+            const el = document.getElementById("send-text");
+            el.focus();
+            el.select();
+            alert("Ctrl+Cでコピーしてください。");
+          }
+        });
+      }
+
+      // メールアプリで送る（件名＋本文に埋め込み）
+      if (mailBtn) {
+        mailBtn.addEventListener("click", () => {
+          const text = document.getElementById("send-text").value;
+          if (!text) return;
+          const subject = encodeURIComponent(levelNames[currentLevel] || "社内教育テスト回答");
+          const body = encodeURIComponent(text);
+          window.location.href = `mailto:?subject=${subject}&body=${body}`;
+        });
+      }
+
+      // PDFに出力（印刷ダイアログ）
+      if (printBtn) {
+        printBtn.addEventListener("click", () => {
+          window.print();
+        });
+      }
+    });
+  </script>
+</body>
+</html>
