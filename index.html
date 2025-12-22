@@ -240,7 +240,7 @@
     <h2 class="text-center">回答完了</h2>
 
     <p class="text-center" style="margin-top: 20px; font-weight: bold;">
-      お疲れ様でした。回答内容を上長に提出してください。
+      お疲れ様でした。回答内容をKintoneに登録してください。
     </p>
 
     <div class="label" style="margin-top: 20px;">あなたの回答内容（自動生成）</div>
@@ -480,8 +480,6 @@ window.app = {
       reportText += `回答：\n${ansText}\n`;
       reportText += `----------------------------\n`;
     }
-    reportText += `自己評価・コメント：\n`;
-
     const sendTextEl = document.getElementById('send-text');
     sendTextEl.value = reportText;
 
@@ -556,4 +554,5 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
+
 
