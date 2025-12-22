@@ -193,13 +193,7 @@
   <!-- 1. Start Screen -->
   <div id="start-screen" class="card fade-in">
     <h2 class="text-center">コース選択</h2>
-
-    <div style="margin-top: 20px;">
-      <div class="label">受験者名（必須）</div>
-      <input type="text" id="user-name-input" placeholder="氏名を入力してください" required>
-    </div>
-
-    <p class="text-center mb-2" style="margin-top: 20px;">
+<p class="text-center mb-2" style="margin-top: 20px;">
       挑戦するレベルを選択してください。（各レベル10問をランダムに出題します）
     </p>
     <div style="margin-top: 12px;">
@@ -246,7 +240,7 @@
     <h2 class="text-center">回答完了</h2>
 
     <p class="text-center" style="margin-top: 20px; font-weight: bold;">
-      お疲れ様でした。回答内容をKintoneに登録してください。
+      お疲れ様でした。回答内容を上長に提出してください。
     </p>
 
     <div class="label" style="margin-top: 20px;">あなたの回答内容（自動生成）</div>
@@ -340,16 +334,9 @@ window.app = {
 
   // Methods
   startQuiz: function(level) {
-    const userNameInput = document.getElementById('user-name-input');
-    const name = userNameInput.value.trim();
+    // 受験者名入力は廃止
+    this.userName = '';
 
-    if (!name) {
-      this.showMessage('受験者名を入力してください。');
-      userNameInput.focus();
-      return;
-    }
-
-    this.userName = name;
     this.currentLevel = level;
 
     // レベル別に絞ってシャッフル
@@ -458,7 +445,7 @@ window.app = {
       tempTextarea.blur();
 
       if (success) {
-        messageEl.textContent = '✅ 回答内容をコピーしました！Kintoneアプリに貼り付けてください。';
+        messageEl.textContent = '✅ 回答内容をコピーしました！提出先に貼り付けてください。';
       } else {
         messageEl.textContent = '❌ 自動コピーに失敗しました。上のテキストエリアの内容を全選択・コピーして提出してください。';
         tempTextarea.select();
@@ -478,10 +465,8 @@ window.app = {
     const levelName = levelNames[this.currentLevel] || "未選択コース";
     const date = new Date().toLocaleDateString('ja-JP');
 
-    let reportText = `【社内テスト回答提出】\n`;
-    reportText += `氏名：${this.userName}\n`;
-    reportText += `実施日：${date}\n`;
-    reportText += `コース：${levelName}\n\n`;
+    let reportText = ``;
+
     reportText += `----------------------------\n`;
 
     for (let i = 0; i < this.questions.length; i++) {
@@ -495,6 +480,8 @@ window.app = {
       reportText += `回答：\n${ansText}\n`;
       reportText += `----------------------------\n`;
     }
+    reportText += `自己評価・コメント：\n`;
+
     const sendTextEl = document.getElementById('send-text');
     sendTextEl.value = reportText;
 
