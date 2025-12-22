@@ -84,12 +84,12 @@
     .btn-primary:hover {
       background: var(--primary-hover);
     }
-    
+
     .btn-success {
       background: var(--success-color);
       color: white;
     }
-    
+
     .btn-success:hover {
       background: #059669;
     }
@@ -122,7 +122,7 @@
       border-color: var(--primary-color);
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
     }
-    
+
     input[type="text"] {
       width: 100%;
       padding: 12px;
@@ -145,7 +145,7 @@
     .text-center { text-align: center; }
     .mt-4 { margin-top: 16px; }
     .mb-2 { margin-bottom: 8px; }
-    
+
     .badge {
       display: inline-block;
       padding: 4px 8px;
@@ -193,7 +193,7 @@
   <!-- 1. Start Screen -->
   <div id="start-screen" class="card fade-in">
     <h2 class="text-center">コース選択</h2>
-    
+
     <div style="margin-top: 20px;">
       <div class="label">受験者名（必須）</div>
       <input type="text" id="user-name-input" placeholder="氏名を入力してください" required>
@@ -229,12 +229,12 @@
     <div class="text-center mb-2">
       <span id="question-count" class="badge">Q 1/10</span>
     </div>
-    
+
     <h3 id="question-text" style="font-size:1.2rem; margin-bottom:16px;">ここに問題が表示されます</h3>
-    
+
     <div class="label">あなたの回答</div>
     <textarea id="answer-input" placeholder="ここに回答を入力してください"></textarea>
-    
+
     <div style="display:flex; gap:12px; margin-top:4px;">
       <button id="prev-btn" class="btn btn-secondary" style="flex:1;">前の問題に戻る</button>
       <button id="submit-btn" class="btn btn-primary" style="flex:1;">次へ進む</button>
@@ -244,15 +244,16 @@
   <!-- 3. Result Screen (Submission) -->
   <div id="result-screen" class="card hidden">
     <h2 class="text-center">回答完了</h2>
-    
+
     <p class="text-center" style="margin-top: 20px; font-weight: bold;">
-      お疲れ様でした。回答内容を上長に提出してください。
+      お疲れ様でした。回答内容をKintoneに登録してください。
     </p>
 
     <div class="label" style="margin-top: 20px;">あなたの回答内容（自動生成）</div>
     <textarea id="send-text" readonly style="min-height: 250px; font-size: 0.85rem; color:#555; background:#f9fafb;"></textarea>
-    
-    <button id="action-btn" class="btn mt-4"></button>
+
+    <!-- 常にコピー専用ボタンにする -->
+    <button id="action-btn" class="btn btn-success mt-4">回答内容をコピー</button>
     <div id="copy-message" class="text-center hidden" style="color:var(--success-color); font-weight:bold; margin-top:-8px; margin-bottom:12px;"></div>
 
     <button class="btn btn-secondary mt-4" onclick="location.reload()">トップに戻る</button>
@@ -268,40 +269,35 @@
 window.app = {
   // Constants
   NUM_QUESTIONS: 10,
-  MAILTO_LIMIT: 10000, // mailtoの文字数制限（エンコード後）
 
   // State
   questions: [],
   currentLevel: 0,
   currentIndex: 0,
   userAnswers: [], // indexごとに { question, userText }
-  userName: '', 
+  userName: '',
 
   // 問題データ
   database: [
-    // --- Lv1：基礎知識 (20問) ---
+    // --- Lv1：基礎知識 ---
     { id: 1, level: 1, text: "ダクト内を流れる風量を調整するためのダンパーを何と言いますか？", model: "VD（Volume Damper）。風量調整ダンパー。ダクト内の風量を調整し、各系統のバランスを整える部材。" },
     { id: 2, level: 1, text: "FDの正式名称と役割を説明してください。", model: "FD（Fire Damper）。防火ダンパー。火災時にヒューズが溶けて閉鎖し、延焼を防ぐ。" },
     { id: 3, level: 1, text: "グラスウールとロックウールの使い分けを説明してください。", model: "グラスウールは主に保温・保冷（一般空調）。ロックウールは耐火・耐熱性が高く、厨房排気や高温ダクトに使用する。" },
     { id: 4, level: 1, text: "セラカバーの主な用途は何ですか？", model: "ロックウールの成形品で、主に厨房排気ダクトの断熱・防火措置に使用する。施工が容易。" },
     { id: 5, level: 1, text: "フレキシブルダクトの使用上の注意点は？（長さなど）", model: "抵抗が大きいため、必要最小限（一般的に2m以内）にする。曲がりを急にしない。" },
     { id: 6, level: 1, text: "キャンバスダクト（たわみ継手）の役割は？", model: "送風機などの振動をダクトに伝えないための防振継手。" },
-    { id: 7, level: 1, text: "厨房排気で「ニューホープ」等の耐油性フレキを使う理由は？", model: "一般のアルミフレキは油や熱で腐食・穴あきが発生しやすいため。耐久性を確保するため。" },
+    { id: 7, level: 1, text: "排気ダクトの途中に設ける「点検口」の役割は？", model: "ダクト内の清掃、FD（防火ダンパー）のヒューズ交換、VDの調整など、メンテナンスのため。" },
     { id: 8, level: 1, text: "外壁ガラリに防虫網を付けるメリットとデメリットは？", model: "メリット：虫の侵入防止。デメリット：目詰まりしやすく、メンテナンスを怠ると給気不足になる。" },
     { id: 9, level: 1, text: "グリスフィルターの役割を説明してください。", model: "油脂分を除去し、ダクト内への油の侵入を防ぐ。火災延焼防止機能（F値）を持つものもある。" },
     { id: 10, level: 1, text: "火災時に防火区画の延焼を防ぐために、一定温度に達すると自動で閉鎖するダンパーを何と言いますか？", model: "防火ダンパー。火災時にヒューズが溶けて閉鎖し、延焼を防ぐ。" },
     { id: 11, level: 1, text: "給気ダクトに断熱材を巻く主な目的を2つ説明してください。", model: "①結露防止（特に冷房時の給気）。②熱損失防止（暖房時）。③消音効果（限定的）。" },
-    { id: 12, level: 1, text: "角ダクトと丸ダクトの一般的な使い分けを説明してください。", model: "角ダクトは天井裏のスペース制限がある場合や分岐が多い場所。丸ダクトは抵抗が少なく、漏れにくいが、省スペース化が難しい。" },
+    { id: 12, level: 1, text: "一般空調のダクト内張り材として使用される材料を挙げてください。", model: "グラスウールなどの断熱材。" },
     { id: 13, level: 1, text: "SAとRAの正式名称と意味を説明してください。", model: "SA: Supply Air（給気）。RA: Return Air（還気）。" },
     { id: 14, level: 1, text: "フレキダクトの接続部に使われるアルミテープの役割は？", model: "ダクト内の気密性を保ち、空気の漏れを防ぐこと。耐火・耐熱性も確保するため。" },
-    { id: 15, level: 1, text: "防火区画を貫通するダクトにFDを設置する理由を説明してください。", model: "火災の熱による煙や炎が、ダクトを通じて他の防火区画へ広がるのを防ぐため。" },
-    { id: 16, level: 1, text: "キャンバスダクト（防振ジョイント）を設置する機器を2つ挙げてください。", model: "シロッコファン、ミニシロッコファン、ストレートシロッコファンなど。" },
-    { id: 17, level: 1, text: "ダクトの継手部分で、空気の漏れ（リーク）を防ぐための一般的な対策は？", model: "パッキン、シーリング材（コーキング）、気密テープの使用。" },
-    { id: 18, level: 1, text: "屋外に設置するダクトやフードの防錆対策について説明してください。", model: "亜鉛メッキ鋼板（ガルバリウム鋼板など）を使用する。必要に応じて塗装仕上げとする。" },
-    { id: 19, level: 1, text: "排気ダクトの途中に設ける「点検口」の役割は？", model: "ダクト内の清掃、FD（防火ダンパー）のヒューズ交換、VDの調整など、メンテナンスのため。" },
-    { id: 20, level: 1, text: "一般空調のダクト内張り材として使用される材料を一つ挙げてください。", model: "グラスウール、またはポリエチレンフォームなどの断熱材。" },
+    { id: 15, level: 1, text: "キャンバスダクト（防振ジョイント）を設置する機器を2つ挙げてください。", model: "シロッコファン、ミニシロッコファン、ストレートシロッコファンなど。" },
+    { id: 16, level: 1, text: "ダクトの継手部分で、空気の漏れ（リーク）を防ぐための一般的な対策は？", model: "パッキン、シーリング材（コーキング）、気密テープの使用。" },
 
-    // --- Lv2：システム理解 (20問) ---
+    // --- Lv2：システム理解 ---
     { id: 21, level: 2, text: "第1種換気の特徴とメリットを説明してください。", model: "給気・排気ともに機械で行う方式。室圧コントロールが容易で、確実な換気ができる。" },
     { id: 22, level: 2, text: "第3種換気が厨房に適している理由（または一般的である理由）は？", model: "排気のみ機械で行うため室内が負圧になり、厨房の臭気や熱気が客席へ流出しにくいため。" },
     { id: 23, level: 2, text: "飲食店で第2種換気（給気のみ機械）がNGとされる理由は？", model: "室内が正圧になり、臭気が外部や他区画へ漏れ出すため。" },
@@ -312,39 +308,34 @@ window.app = {
     { id: 28, level: 2, text: "給気口の配置で、客席において注意すべきことは？", model: "ドラフト（不快な気流）が客に直接当たらない位置・風速にすること。" },
     { id: 29, level: 2, text: "厨房フードの「面風速」の目安は？", model: "一般的に0.3m/s〜0.5m/s程度。" },
     { id: 30, level: 2, text: "インバーター制御をファンに導入するメリットは？", model: "周波数を変えて風量を調整できるため、試運転調整が容易で、省エネ効果も見込める。" },
-    { id: 31, level: 2, text: "全熱交換器（ロスナイなど）の設置目的とデメリットを説明してください。", model: "目的：排気熱を回収し、外気の給気温度を近づけることで空調負荷を軽減。デメリット：排気側と給気側の空気が混ざり、臭気が戻る場合がある。" },
+    { id: 31, level: 2, text: "全熱交換器（ロスナイなど）の設置目的とデメリットを説明してください。", model: "目的：排気熱を回収し、外気の給気温度を近づけることで空調負荷を軽減。デメリット：排気側と給気側の空気が混ざり、臭気が戻る場合がある。風量に対して機器が大きい。" },
     { id: 32, level: 2, text: "換気設備における「結露」の主な発生原因と対策は？", model: "原因：ダクト表面温度と周囲空気温度の差。対策：断熱材の適切な施工、または温度差を少なくする。" },
     { id: 33, level: 2, text: "VAV（可変風量）システムとCAV（定風量）システムの使い分けは？", model: "VAV：負荷変動に応じて風量を変え、省エネに優れる。CAV：一定風量で室圧・温湿度管理を安定させる。" },
-    { id: 34, level: 2, text: "防火ダンパー（FD）と排煙ダンパー（SD）の動作原理の違いを説明してください。", model: "FD：ヒューズが溶けて自動閉鎖（防火）。SD：火災感知器と連動して遠隔操作で開閉（排煙）。" },
+    { id: 34, level: 2, text: "排煙ダンパー（SD）の動作原理の違いを説明してください。", model: "FD：ヒューズが溶けて自動閉鎖（防火）。SD：火災感知器と連動して遠隔操作で開閉（排煙）。" },
     { id: 35, level: 2, text: "天井裏をダクトルートとして利用する際の注意点を2つ以上挙げてください。", model: "①点検口の確保。②他の設備（電気配線、配管）との干渉回避。③ダクトの気密性確保。" },
-    { id: 36, level: 2, text: "換気風量を決定する際に考慮すべき3つの主要な要素は？", model: "①在室人数。②室用途（汚染物質の発生量）。③法令で定められた換気回数。" },
-    { id: 37, level: 2, text: "厨房排気ファンでベルト駆動式が多い理由を説明してください。", model: "プーリー交換で容易に風量調整ができ、モーターを熱や油汚れから離して配置できるため。" },
-    { id: 38, level: 2, text: "吸込み口と吐出し口が同一の外部フードにある場合の、ファン能力への影響は？", model: "ショートサーキットを起こし、新鮮外気が取り込めず、汚れた空気を再吸込みしやすい。" },
-    { id: 39, level: 2, text: "風量測定値が設計値と大きく異なる場合に確認すべき点を2つ挙げてください。", model: "①VD（ダンパー）が全開か。②ファン回転数（インバータ設定、プーリー径）が設計通りか。③ダクトの漏れ・閉塞がないか。" },
-    { id: 40, level: 2, text: "排煙設備の「自然排煙」と「機械排煙」の使い分けを説明してください。", model: "自然排煙：窓などの開口部を利用。機械排煙：排煙機（ファン）を利用。条件により自然排煙のみで可のケースもある。" },
+    { id: 36, level: 2, text: "厨房排気ファンでベルト駆動式が多い理由を説明してください。", model: "プーリー交換で容易に風量調整ができ、モーターを熱や油汚れから離して配置できるため。" },
+    { id: 37, level: 2, text: "風量測定値が設計値と大きく異なる場合に確認すべき点を2つ挙げてください。", model: "①VD（ダンパー）が全開か。②ベルトの回転方向は合ってるか（逆相ではないか）。③ダクトの漏れ・閉塞がないか。" },
 
-    // --- Lv3：実践応用 (21問目まで追加済) ---
+    // --- Lv3：実践応用 ---
     { id: 41, level: 3, text: "風量 Q (m³/h) を求める基本式は？（風速V、面積Aを使って）", model: "Q = A × V × 3600 （A:断面積[m²], V:風速[m/s]）" },
     { id: 42, level: 3, text: "ダクトの「アスペクト比」とは何か。推奨される制限は？", model: "ダクトの長辺と短辺の比率。一般に4:1以下が望ましい。" },
-    { id: 43, level: 3, text: "静圧（Ps）、動圧（Pv）、全圧（Pt）の関係式は？", model: "Pt = Ps + Pv （全圧 = 静圧 + 動圧）" },
+    { id: 43, level: 3, text: "チャンバーボックスの役割を2つ挙げてください。", model: "①分岐や合流をスムーズにする。②消音効果（内貼りがある場合）。" },
     { id: 44, level: 3, text: "ダクト径を半分にすると、抵抗（圧損）は理論上どうなるか？", model: "同じ風量を流そうとすると流速が4倍になり、圧損は大幅に増加する。" },
     { id: 45, level: 3, text: "送風機の「サージング」とはどのような現象か？", model: "風量・圧力が周期的に変動し、激しい振動や騒音を伴う不安定運転現象。" },
-    { id: 46, level: 3, text: "システム天井などでリターン（還気）を取る際の「天井内負圧」のリスクは？", model: "天井ボードの吸い上げ、ドアの開閉障害、排水トラップの破封、隙間風の音など。" },
-    { id: 47, level: 3, text: "長方形ダクトを正方形や円形に換算した直径を何と呼ぶか？", model: "相当直径（等価直径）。" },
-    { id: 48, level: 3, text: "シロッコファンとターボファンの特性の違いは（静圧の観点で）？", model: "ターボファンは高静圧・高効率。シロッコファンは静圧は低いが風量が取れ、小型。" },
-    { id: 49, level: 3, text: "厨房排気ファンの選定で、静圧計算時に特に考慮すべき抵抗要素は？", model: "グリスフィルター、防火ダンパー、防虫網、外部フード、および油汚れによる経年劣化分。" },
-    { id: 50, level: 3, text: "CO2濃度センサーによる換気制御の目的は？", model: "在室人数に応じて必要換気量を調整し、外気導入負荷（空調エネルギー）を削減するため。" },
-    { id: 51, level: 3, text: "インバーターでファンの回転数を1/2に下げた場合、風量・静圧・消費電力は理論上どうなるか？", model: "風量は1/2、静圧は1/4、消費電力は1/8になる（ファン相似則）。" },
+    { id: 46, level: 3, text: "ダクト径を小さくしすぎると何が起こりますか？風速・圧損・騒音の観点から説明してください。", model: "風速は速くなる、圧損は大きくなる、騒音は大きくなる" },
+    { id: 47, level: 3, text: "エルボ（曲がり）が多いダクト経路で風量が落ちやすい理由を説明してください。", model: "抵抗（静圧）が掛かるから。※適したファンを選定すれば問題ない" },
+    { id: 48, level: 3, text: "東産業では90°エルボは何Paで計算しますか？", model: "15Pa" },
+    { id: 49, level: 3, text: "厨房排気ファンの選定で、静圧計算時に特に考慮すべき抵抗要素は？", model: "エルボの数、ダクトサイズ、グリスフィルター、防火ダンパー、防虫網、外部フード、および油汚れによる経年劣化分。" },
+    { id: 50, level: 3, text: "ダクト断面を途中で小さくすると風速と静圧はどう変化しますか？", model: "風速は速くなる、静圧は大きくなる" },
+    { id: 51, level: 3, text: "ファンの静圧を強くしすぎた場合の悪影響を1つ挙げて説明してください。", model: "風切り音が大きくなる、ダクトの振動が大きくなる、サージングが発生する" },
     { id: 52, level: 3, text: "局所排気の設計において、フードの捕集効率を上げるための基本的な考え方は？", model: "①フードを発生源にできるだけ近づける。②発生源を囲い込む。③周りの気流を乱さない。" },
     { id: 53, level: 3, text: "ダクト曲がり部（エルボ）の抵抗（圧損）を減らすための工夫を2つ挙げてください。", model: "①曲がり半径を大きくする。②案内羽根（ガイドベーン）を設ける。" },
     { id: 54, level: 3, text: "TAB（Testing, Adjusting and Balancing）作業の最終的な目的を説明してください。", model: "設計図通りの風量・静圧・温湿度が各吹出口・吸込口で確実に出ている状態に調整すること。" },
     { id: 55, level: 3, text: "静圧測定に使う「ピトー管」の測定原理を説明してください。", model: "全圧と静圧の差から動圧を求め、その値から風速を算出する。" },
     { id: 56, level: 3, text: "高層ビルの換気計画で考慮すべき「スタック効果（煙突効果）」とは何か？", model: "建物の内外の温度差・密度差により、上下方向の自然気流が発生する現象。" },
-    { id: 57, level: 3, text: "空調機のAHUで加湿器を設置する主な目的と、加湿方式を一つ挙げてください。", model: "目的：冬季の乾燥対策や湿度管理。方式：蒸気式、気化式、噴霧式などのいずれか。" },
+    { id: 57, level: 3, text: "客席側の吹出風量が大きすぎて不快感が出る場合、どのような調整案がありますか？", model: "ドラフト板を取り付ける、排気風量を落とし、給気量を減らす" },
     { id: 58, level: 3, text: "ファン騒音対策として、ダクト経路に追加できる部材を2つ挙げてください。", model: "①サイレンサー（消音器）。②内張り消音ダクト。③内張り付きチャンバーボックス。" },
-    { id: 59, level: 3, text: "ダクト内の空気抵抗は、ダクトの長さと内壁の粗さ（摩擦係数）にどう影響を受けるか？", model: "長さが長いほど、内面が粗いほど抵抗は大きくなる。" },
-    { id: 60, level: 3, text: "圧力損失（圧損）を低減するための設計上の工夫を2つ挙げてください。", model: "①ダクトの風速を下げる（径を大きくする）。②エルボや分岐をなだらかにする。③内面を滑らかにする。" },
-    { id: 61, level: 3, text: "チャンバーボックスの役割を2つ挙げてください。", model: "①分岐や合流をスムーズにする。②消音効果（内貼りがある場合）。" }
+    { id: 59, level: 3, text: "圧力損失（圧損）を低減するための設計上の工夫を2つ挙げてください。", model: "①ダクトの風速を下げる（径を大きくする）。②エルボや分岐をなだらかにする。" }
   ],
 
   // Methods
@@ -372,7 +363,7 @@ window.app = {
     }
 
     this.currentIndex = 0;
-    this.userAnswers = new Array(this.questions.length).fill(null); // インデックスごとに回答を持つ
+    this.userAnswers = new Array(this.questions.length).fill(null);
 
     this.switchScreen('quiz-screen');
     this.updateQuestionDisplay();
@@ -404,7 +395,7 @@ window.app = {
       return;
     }
 
-    // 今の回答も保存してから戻る
+    // 今の回答も保存してから戻る（※保存先は currentIndex のまま）
     const input = document.getElementById('answer-input');
     if (input) {
       const answer = input.value.trim();
@@ -426,14 +417,11 @@ window.app = {
 
     const q = this.questions[this.currentIndex];
 
-    // 問題番号表示
     document.getElementById('question-count').textContent =
       `Q ${this.currentIndex + 1} / ${this.questions.length}`;
 
-    // 問題文
     document.getElementById('question-text').textContent = q.text;
 
-    // 回答欄
     const input = document.getElementById('answer-input');
     const saved = this.userAnswers[this.currentIndex];
 
@@ -444,11 +432,9 @@ window.app = {
     }
     input.focus();
 
-    // プログレスバー
     const progress = (this.currentIndex / this.questions.length) * 100;
     document.getElementById('progress-bar').style.width = `${progress}%`;
 
-    // ボタン表示テキスト
     const submitBtn = document.getElementById('submit-btn');
     submitBtn.textContent =
       (this.currentIndex === this.questions.length - 1)
@@ -472,7 +458,7 @@ window.app = {
       tempTextarea.blur();
 
       if (success) {
-        messageEl.textContent = '✅ 回答内容をコピーしました！メーラーに貼り付けて提出してください。';
+        messageEl.textContent = '✅ 回答内容をコピーしました！Kintoneアプリに貼り付けてください。';
       } else {
         messageEl.textContent = '❌ 自動コピーに失敗しました。上のテキストエリアの内容を全選択・コピーして提出してください。';
         tempTextarea.select();
@@ -509,51 +495,30 @@ window.app = {
       reportText += `回答：\n${ansText}\n`;
       reportText += `----------------------------\n`;
     }
-    reportText += `自己評価・コメント：\n`;
-
     const sendTextEl = document.getElementById('send-text');
     sendTextEl.value = reportText;
 
+    // mailtoは廃止し、常にコピー
     const actionBtn = document.getElementById('action-btn');
     const copyMessage = document.getElementById('copy-message');
-    const subject = `【テスト回答】${this.userName} - ${levelName}`;
-    const encodedBody = encodeURIComponent(reportText);
 
-    if (encodedBody.length > this.MAILTO_LIMIT) {
-      // 文字数オーバー → コピーモード
-      actionBtn.textContent = '回答内容をクリップボードにコピー';
-      actionBtn.className = 'btn btn-success mt-4';
-
-      actionBtn.onclick = () => {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(reportText).then(() => {
-            copyMessage.textContent = '✅ 回答内容をコピーしました！メーラーに貼り付けて提出してください。';
-            copyMessage.classList.remove('hidden');
-          }).catch(err => {
-            console.warn('Clipboard API failed, using fallback.', err);
-            this.copyToClipboardFallback(reportText, sendTextEl, copyMessage);
-          });
-        } else {
+    actionBtn.onclick = () => {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(reportText).then(() => {
+          copyMessage.textContent = '✅ 回答内容をコピーしました！提出先に貼り付けてください。';
+          copyMessage.classList.remove('hidden');
+        }).catch(err => {
+          console.warn('Clipboard API failed, using fallback.', err);
           this.copyToClipboardFallback(reportText, sendTextEl, copyMessage);
-        }
-      };
-
-    } else {
-      // mailtoでそのまま送れる
-      actionBtn.textContent = 'メールアプリを起動する';
-      actionBtn.className = 'btn btn-primary mt-4';
-      copyMessage.classList.add('hidden');
-
-      actionBtn.onclick = () => {
-        const encodedSubject = encodeURIComponent(subject);
-        window.location.href = `mailto:?subject=${encodedSubject}&body=${encodedBody}`;
-      };
-    }
+        });
+      } else {
+        this.copyToClipboardFallback(reportText, sendTextEl, copyMessage);
+      }
+    };
 
     this.switchScreen('result-screen');
   },
 
-  // 配列シャッフル
   shuffleArray: function(array) {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -562,7 +527,6 @@ window.app = {
     return array;
   },
 
-  // 画面切り替え
   switchScreen: function(screenId) {
     ['start-screen', 'quiz-screen', 'result-screen'].forEach(id => {
       const el = document.getElementById(id);
@@ -576,7 +540,6 @@ window.app = {
     window.scrollTo(0, 0);
   },
 
-  // 簡易メッセージ
   showMessage: function(message) {
     const messageDiv = document.createElement('div');
     messageDiv.textContent = message;
@@ -606,3 +569,4 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
+
